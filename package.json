@@ -1,0 +1,25 @@
+{
+  "name": "juliang-qianchuan-auto-ads-v1",
+  "version": "1.0.0",
+  "description": "巨量千川品牌竞价直播加热自动投流：飞书触发、页面自动化、计划防重复、监控调价与删除预检。",
+  "main": "SKILL.md",
+  "keywords": [
+    "巨量千川",
+    "千川",
+    "巨量引擎",
+    "直播加热",
+    "自动投流",
+    "飞书机器人",
+    "OpenClaw",
+    "广告投放"
+  ],
+  "author": "煮酒社群",
+  "license": "SEE LICENSE IN NOTICE.md",
+  "openclaw": {
+    "type": "skill",
+    "extensions": [
+      "./SKILL.md"
+    ],
+    "configSchema": {}
+  }
+}

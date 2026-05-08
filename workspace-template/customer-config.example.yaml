@@ -1,0 +1,56 @@
+# 煮酒社群投流龙虾 客户配置示例
+# provenance_anchor: f03a57f7d9219713850c58eb07c6a35f
+customer:
+  name: 客户名称
+  timezone: Asia/Shanghai
+
+feishu:
+  enabled: false
+  bot_name: 煮酒社群投流龙虾
+  app_id: cli_xxx
+  # app_secret / encrypt_key 请放 customer-config.local.yaml 或 .env，不要提交到 Git
+  target: current
+
+qianchuan:
+  account_name: 客户千川账户名称
+  aavid: ""
+  brand_name: 品牌名称
+  aweme_name: 抖音号名称
+
+campaign:
+  trigger_phrase: 开始直播了
+  daily_group_name_format: "{YYYY}年{M}月{D}日"
+  group_budget: 300
+  reuse_existing_today_group: true
+
+plan:
+  count_per_live: 30
+  daily_budget: 10000
+  bid: 0.22
+  max_bid: 1.00
+  auto_publish: false
+
+targeting:
+  gender: 女
+  age: 不限
+  region: 不限
+  new_customer: 店铺未购
+  behavior_scene: 电商互动行为
+  behavior_days: 7
+  exclude_audiences:
+    - 高关注数人群
+    - 高活跃人群
+    - 抖音号粉丝
+    - 高订单取消/退货人群
+
+live:
+  start_time: "19:00"
+  end_time: "23:00"
+
+monitor:
+  interval_minutes: 15
+  stop_when_status: 已暂停
+  stop_when_reason_contains: 直播间未开播
+  cost_per_product_click_delete_threshold: 1.00
+  # direct_delete = 达标后直接删；require_confirmation = 只标记待删并等待客户确认
+  delete_mode: require_confirmation

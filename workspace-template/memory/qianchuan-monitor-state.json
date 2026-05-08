@@ -1,0 +1,17 @@
+{
+  "initialized": false,
+  "targetAdGroupName": "",
+  "targetAdGroupId": "",
+  "createdPlanCount": 0,
+  "monitorPlanList": "memory/qianchuan-monitor-plan-list.md",
+  "plans": {},
+  "pendingDelete": {},
+  "confirmedDelete": {},
+  "monitorStopped": true,
+  "currentRound": {
+    "checkedPlanCount": 0,
+    "monitorTotalCount": 0,
+    "allMonitorPlansChecked": false,
+    "paginationComplete": false
+  }
+}
