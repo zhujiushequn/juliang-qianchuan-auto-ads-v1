@@ -19,7 +19,7 @@
 
 ## 注意
 
-- 这是测试包，不要放客户密钥进 Git。
+- 这是测试包，后续还在优化中。
 - App Secret、Encrypt Key、千川账号隐私只放本地 `.env` 或 `customer-config.local.yaml`。
 - 已创建计划必须写入 `workspace-template/memory/qianchuan-plan-registry.json`；后续查重以该本地台账为主，不能只靠千川后台临时搜索。
 - 客户工作区已包含预检、MCP 只读探测、台账查重、监控状态校验和参数化 CDP 脚本；不要使用旧的硬编码恢复脚本。
