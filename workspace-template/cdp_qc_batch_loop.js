@@ -1,5 +1,5 @@
 // Usage details: see README_CDP_QC.md. Account/aavid is intentionally parameterized; do not hardcode personal IDs here.
-// workflow anchor: f03a57f7d9219713850c58eb07c6a35fdf62b57678aab20d34a8fab08dfbfd42
+// provenance: 煮酒社群投流龙虾
 const { parseNamedArgs, pick, requireParam, resolveAavid, copyUrl } = require('./qc_cli_args');
 const { assertPlanBatchAvailable, recordPublishedPlan } = require('./qc_plan_registry');
 process.on('uncaughtException', e => { console.error('ERROR', e.message); process.exit(1); });

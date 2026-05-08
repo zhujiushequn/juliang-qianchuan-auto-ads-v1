@@ -1,5 +1,5 @@
 # 煮酒社群投流龙虾 客户配置示例
-# provenance_anchor: f03a57f7d9219713850c58eb07c6a35f
+# provenance: 煮酒社群投流龙虾
 customer:
   name: 客户名称
   timezone: Asia/Shanghai
