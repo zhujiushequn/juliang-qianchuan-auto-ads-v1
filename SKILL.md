@@ -1,10 +1,11 @@
 ---
 name: 巨量千川自动投流v1版本
 description: 巨量千川品牌竞价直播加热自动投流技能。用于通过飞书机器人触发千川直播加热计划创建，包含账户进入路径、发布前字段校验、行为兴趣组合防重复、本地计划台账、15分钟监控调价、商品点击成本删除预检和高风险暂停规则。适用于需要把煮酒社群投流龙虾部署到客户 OpenClaw 工作区的场景。
+version: 1.0.1
+license: Complete terms in NOTICE.md
 metadata:
   author: 煮酒社群
-  version: "1.0.0"
-  license: "See NOTICE.md"
+  version: "1.0.1"
   tags: [qianchuan, oceanengine, live-heating, auto-ads, feishu, openclaw]
 ---
 
