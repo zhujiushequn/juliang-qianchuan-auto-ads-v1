@@ -1,6 +1,6 @@
 {
   "name": "juliang-qianchuan-auto-ads-v1",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "巨量千川品牌竞价直播加热自动投流：飞书触发、页面自动化、计划防重复、监控调价与删除预检。",
   "main": "SKILL.md",
   "keywords": [
