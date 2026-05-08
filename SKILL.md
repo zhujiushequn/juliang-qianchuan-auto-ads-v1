@@ -5,7 +5,7 @@ metadata:
   author: 煮酒社群
   version: "1.0.0"
   license: "See NOTICE.md"
-  tags: [巨量千川, 千川, 直播加热, 自动投流, 飞书机器人, OpenClaw]
+  tags: [qianchuan, oceanengine, live-heating, auto-ads, feishu, openclaw]
 ---
 
 # 巨量千川自动投流 v1 版本
