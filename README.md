@@ -70,6 +70,12 @@ Dashboard 打开后，新建对话输入：
 bash bin/qianchuan_preflight.sh
 ```
 
+Windows CMD 可运行：
+
+```bat
+bin\qianchuan_preflight.cmd
+```
+
 预检通过后，通过飞书机器人发送：
 
 ```text

@@ -255,7 +255,21 @@ openclaw dashboard
 
 ### Step 6：跑环境检查
 
-建议先发：
+建议先在客户工作区运行预检。
+
+macOS/Linux/Git Bash：
+
+```bash
+bash bin/qianchuan_preflight.sh
+```
+
+Windows CMD：
+
+```bat
+bin\qianchuan_preflight.cmd
+```
+
+也可以在飞书或 Dashboard 里先发：
 
 ```text
 检查千川环境

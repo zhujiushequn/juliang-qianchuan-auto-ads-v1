@@ -224,7 +224,9 @@ function main() {
 1. 打开 OpenClaw 网页。
 2. 新建对话，输入：初始化千川直播加热
 3. 按向导填写客户自己的飞书、千川账号、抖音号、预算、性别、年龄等配置。
-4. 客户人工登录巨量千川后，在客户工作区运行：bash bin/qianchuan_preflight.sh
+4. 客户人工登录巨量千川后，在客户工作区运行预检：
+   - macOS/Linux/Git Bash：bash bin/qianchuan_preflight.sh
+   - Windows CMD：bin\\qianchuan_preflight.cmd
 5. 预检通过后，通过飞书发送：开始直播了
 
 遇到登录、验证码、二维码、风控、授权、扣费确认、余额不足、资质审核时，必须暂停并人工处理。
