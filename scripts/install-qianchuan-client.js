@@ -38,6 +38,12 @@ function parseArgs(argv) {
     installGateway: false,
     startGateway: false,
     openDashboard: false,
+    setupFeishu: false,
+    feishuAccount: "longxia",
+    feishuAppName: "煮酒社群投流龙虾",
+    feishuDmPolicy: "allowlist",
+    feishuGroupPolicy: "disabled",
+    feishuMock: false,
     overwrite: false,
     dryRun: false,
     workspaceName: DEFAULT_WORKSPACE_NAME,
@@ -47,6 +53,12 @@ function parseArgs(argv) {
     const arg = argv[i];
     if (arg === "--help" || arg === "-h") args.help = true;
     else if (arg === "--install-gateway") args.installGateway = true;
+    else if (arg === "--setup-feishu") args.setupFeishu = true;
+    else if (arg === "--feishu-account") args.feishuAccount = requireValue(argv, ++i, arg);
+    else if (arg === "--feishu-app-name") args.feishuAppName = requireValue(argv, ++i, arg);
+    else if (arg === "--feishu-dm-policy") args.feishuDmPolicy = requireValue(argv, ++i, arg);
+    else if (arg === "--feishu-group-policy") args.feishuGroupPolicy = requireValue(argv, ++i, arg);
+    else if (arg === "--feishu-mock") args.feishuMock = true;
     else if (arg === "--start-gateway") args.startGateway = true;
     else if (arg === "--open-dashboard") args.openDashboard = true;
     else if (arg === "--overwrite") args.overwrite = true;
@@ -77,6 +89,11 @@ Options:
   --workspace <path>       Customer workspace path.
   --workspace-name <name>  Workspace folder under ~/.openclaw. Default: ${DEFAULT_WORKSPACE_NAME}
   --openclaw-home <path>   OpenClaw home and config scope. Default: %USERPROFILE%\\.openclaw or ~/.openclaw
+  --setup-feishu           One-click create/bind Feishu bot. Requires customer scan/authorization.
+  --feishu-account <id>    OpenClaw Feishu account id. Default: longxia
+  --feishu-app-name <name> Feishu app and bot name. Default: 煮酒社群投流龙虾
+  --feishu-dm-policy <p>   open|pairing|allowlist|disabled. Default: allowlist
+  --feishu-group-policy <p> open|allowlist|disabled. Default: disabled
   --install-gateway        Install/reinstall the OpenClaw gateway service and start it.
   --start-gateway          Start an already-installed gateway service.
   --open-dashboard         Open OpenClaw dashboard after setup.
@@ -85,7 +102,7 @@ Options:
   --help                   Show this help.
 
 Examples:
-  node scripts/install-qianchuan-client.js --install-gateway --open-dashboard
+  node scripts/install-qianchuan-client.js --setup-feishu --install-gateway --open-dashboard
   node scripts/install-qianchuan-client.js --workspace "C:\\Users\\Administrator\\.openclaw\\workspace-qianchuan-client"
 `);
 }
@@ -156,6 +173,29 @@ function runOpenClaw(args, options = {}) {
     stdio: "inherit",
     shell: process.platform === "win32",
     env,
+  });
+  if (result.status !== 0) {
+    throw new Error(`Command failed: ${command}`);
+  }
+}
+
+function runNode(args, options = {}) {
+  const command = `node ${args.join(" ")}`;
+  if (options.dryRun) {
+    console.log(`[dry-run] ${command}`);
+    return;
+  }
+
+  console.log(`\n$ ${command}`);
+  const result = spawnSync("node", args, {
+    stdio: "inherit",
+    shell: process.platform === "win32",
+    env: {
+      ...process.env,
+      OPENCLAW_HOME: options.openclawHome,
+      OPENCLAW_STATE_DIR: options.openclawHome,
+      OPENCLAW_CONFIG_PATH: options.configPath,
+    },
   });
   if (result.status !== 0) {
     throw new Error(`Command failed: ${command}`);
@@ -252,6 +292,27 @@ function main() {
   runOpenClaw(["config", "get", "agents.defaults.workspace"], options);
   runOpenClaw(["config", "validate"], options);
 
+  if (args.setupFeishu) {
+    const feishuScript = path.join(paths.clientWorkspace, "bin", "feishu_oneclick_setup.js");
+    const feishuArgs = [
+      feishuScript,
+      "--openclaw-home",
+      paths.openclawHome,
+      "--workspace",
+      paths.clientWorkspace,
+      "--account",
+      args.feishuAccount,
+      "--app-name",
+      args.feishuAppName,
+      "--dm-policy",
+      args.feishuDmPolicy,
+      "--group-policy",
+      args.feishuGroupPolicy,
+    ];
+    if (args.feishuMock) feishuArgs.push("--mock");
+    runNode(feishuArgs, options);
+  }
+
   if (args.installGateway) {
     runOpenClaw(["gateway", "install", "--force", "--runtime", "node", "--port", "18789"], options);
   }
@@ -268,12 +329,13 @@ function main() {
 
 下一步：
 1. 打开 OpenClaw 网页。
-2. 新建对话，输入：初始化千川直播加热
-3. 按向导填写客户自己的飞书、千川账号、抖音号、预算、性别、年龄等配置。
-4. 客户人工登录巨量千川后，在客户工作区运行预检：
+2. 如果已使用 --setup-feishu，先在飞书给机器人发：测试
+3. 新建对话或通过飞书输入：初始化千川直播加热
+4. 按向导填写客户自己的千川账号、抖音号、预算、性别、年龄等配置。
+5. 客户人工登录巨量千川后，在客户工作区运行预检：
    - macOS/Linux/Git Bash：bash bin/qianchuan_preflight.sh
    - Windows CMD：bin\\qianchuan_preflight.cmd
-5. 预检通过后，通过飞书发送：开始直播了
+6. 预检通过后，通过飞书发送：开始直播了
 
 遇到登录、验证码、二维码、风控、授权、扣费确认、余额不足、资质审核时，必须暂停并人工处理。
 `);

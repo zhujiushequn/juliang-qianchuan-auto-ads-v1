@@ -7,6 +7,14 @@ description: 飞书开放平台机器人创建与 OpenClaw 绑定向导。适用
 
 目标：把“客户电脑上的 OpenClaw”快速接入一个可用的飞书机器人。
 
+优先方式：客户安装包后直接运行一键安装命令：
+
+```bash
+node scripts/install-qianchuan-client.js --setup-feishu --install-gateway --open-dashboard
+```
+
+该命令会调用客户工作区的 `bin/feishu_oneclick_setup.js`，基于飞书官方 `registerApp()` 扫码创建应用，拿到 App ID/App Secret 后写入客户本机 OpenClaw 配置。只有扫码/授权需要客户本人确认。
+
 核心原则：**不能绕过人工确认，但要尽量替客户打开页面、定位入口、告诉客户每一步填什么。**
 
 
@@ -56,6 +64,8 @@ description: 飞书开放平台机器人创建与 OpenClaw 绑定向导。适用
 ## 推荐交付模式
 
 采用“网页辅助 + 对话向导”：
+
+如果一键创建失败或客户不愿扫码授权，再退回到此模式：
 
 1. 助手打开飞书开放平台。
 2. 如果出现登录/二维码/验证码，暂停并让客户处理。

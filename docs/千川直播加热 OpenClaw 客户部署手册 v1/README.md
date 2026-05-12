@@ -211,10 +211,18 @@ cd /d C:\Users\Administrator\.openclaw\workspace\skills\juliang-qianchuan-auto-a
 运行安装器：
 
 ```bat
-node scripts\install-qianchuan-client.js --install-gateway --open-dashboard
+node scripts\install-qianchuan-client.js --setup-feishu --install-gateway --open-dashboard
 ```
 
-安装器会自动复制两个子技能、生成客户工作区、创建 `customer-config.yaml`、切换 OpenClaw 默认工作区、校验配置、安装并启动 Gateway。
+安装器会自动复制两个子技能、生成客户工作区、创建 `customer-config.yaml`、切换 OpenClaw 默认工作区、打开飞书扫码授权创建机器人、写入客户本机飞书配置、校验配置、安装并启动 Gateway。
+
+飞书一键创建过程会打开授权链接，客户必须本人扫码/确认。完成后 App Secret 只写入客户本机：
+
+```text
+.env.feishu
+customer-config.local.yaml
+runs/secrets/feishu-app-*.json
+```
 
 如果 Gateway 服务安装失败，可先前台运行：
 
@@ -251,7 +259,19 @@ openclaw dashboard
 
 ### Step 5：绑定飞书机器人
 
-确认客户发消息给机器人后，OpenClaw 能收到。
+如果 Step 2 已使用 `--setup-feishu`，这里通常只需要确认客户发消息给机器人后，OpenClaw 能收到。
+
+如果客户不想一键创建，仍可使用旧向导：
+
+```text
+初始化飞书机器人
+```
+
+或手动运行：
+
+```bat
+node bin\feishu_oneclick_setup.js
+```
 
 ### Step 6：跑环境检查
 

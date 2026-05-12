@@ -13,7 +13,7 @@ openclaw skills install juliang-qianchuan-auto-ads-v1 --force
 客户从 ClawHub 或 GitHub 下载后，进入本包目录执行：
 
 ```bash
-node scripts/install-qianchuan-client.js --install-gateway --open-dashboard
+node scripts/install-qianchuan-client.js --setup-feishu --install-gateway --open-dashboard
 ```
 
 这条命令会自动完成：
@@ -24,15 +24,16 @@ node scripts/install-qianchuan-client.js --install-gateway --open-dashboard
    `~/.openclaw/workspace-qianchuan-client`
 4. 生成 `customer-config.yaml`。
 5. 把 OpenClaw 默认工作区切到客户工作区。
-6. 校验 OpenClaw 配置。
-7. 安装并启动 Gateway 服务。
-8. 打开 OpenClaw Dashboard。
+6. 打开飞书扫码授权，一键创建飞书智能体应用并写入客户本机配置。
+7. 校验 OpenClaw 配置。
+8. 安装并启动 Gateway 服务。
+9. 打开 OpenClaw Dashboard。
 
 Windows 示例：
 
 ```bat
 cd /d C:\Users\Administrator\.openclaw\workspace\skills\juliang-qianchuan-auto-ads-v1
-node scripts\install-qianchuan-client.js --install-gateway --open-dashboard
+node scripts\install-qianchuan-client.js --setup-feishu --install-gateway --open-dashboard
 ```
 
 如果客户不想安装 Gateway 服务，只想前台运行：
@@ -56,9 +57,14 @@ Dashboard 打开后，新建对话输入：
 初始化千川直播加热
 ```
 
+如果使用了 `--setup-feishu`，也可以直接在飞书给机器人发：
+
+```text
+初始化千川直播加热
+```
+
 按向导完成：
 
-- 飞书机器人创建与 OpenClaw 绑定
 - 千川账号、账户 ID、抖音号
 - 性别、年龄、计划数量
 - 广告组预算、计划日预算、初始出价
@@ -85,6 +91,7 @@ bin\qianchuan_preflight.cmd
 ## 注意
 
 - App Secret、Encrypt Key、千川账号隐私只放本地 `.env` 或 `customer-config.local.yaml`。
+- 飞书一键创建需要客户本人扫码/授权；脚本只在客户本机保存 App Secret，不上传、不写入公开仓库。
 - 已创建计划必须写入 `workspace-template/memory/qianchuan-plan-registry.json`；后续查重以该本地台账为主，不能只靠千川后台临时搜索。
 - 客户工作区已包含预检、MCP 只读探测、台账查重、监控状态校验和参数化 CDP 脚本；不要使用旧的硬编码恢复脚本。
 - 遇到登录、验证码、授权、风控、扣费确认必须人工处理。
