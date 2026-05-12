@@ -9,28 +9,130 @@ const ROOT = path.resolve(__dirname, "..");
 const DEFAULT_WORKSPACE_NAME = "workspace-qianchuan-client";
 const WINDOWS_PREFLIGHT_CMD = `@echo off
 setlocal
-
-where bash >nul 2>nul
-if errorlevel 1 (
-  echo FAIL: 未找到 bash。请先安装 Git for Windows 或 WSL，然后重新运行 bin\\qianchuan_preflight.cmd。
-  echo NOTICE: 也可以在 OpenClaw Dashboard 或飞书里发送“检查千川环境”，让机器人按页面执行只读预检。
-  exit /b 1
-)
-
-bash "%~dp0qianchuan_preflight.sh" %*
+chcp 65001 >nul
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0qianchuan_preflight.ps1" %*
 exit /b %ERRORLEVEL%
 `;
-const WINDOWS_PREFLIGHT_PS1 = `$ErrorActionPreference = "Stop"
+const WINDOWS_PREFLIGHT_PS1 = `<#
+Windows 原生千川预检。无需 Git Bash。
+用于客户刚安装 OpenClaw 的 Windows 机器。
+#>
+param(
+  [string]$Workspace = (Resolve-Path (Join-Path $PSScriptRoot "..") | Select-Object -ExpandProperty Path),
+  [string]$CdpUrl = "http://127.0.0.1:18800"
+)
 
-$bash = Get-Command bash -ErrorAction SilentlyContinue
-if (-not $bash) {
-  Write-Host "FAIL: 未找到 bash。请先安装 Git for Windows 或 WSL，然后重新运行 bin\\qianchuan_preflight.ps1。"
-  Write-Host "NOTICE: 也可以在 OpenClaw Dashboard 或飞书里发送“检查千川环境”，让机器人按页面执行只读预检。"
-  exit 1
+$ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
+function Ok($m) { Write-Host "OK: $m" -ForegroundColor Green }
+function Warn($m) { Write-Host "NOTICE: $m" -ForegroundColor Yellow }
+function Fail($m) { Write-Host "FAIL: $m" -ForegroundColor Red; exit 1 }
+function Have($cmd) { return $null -ne (Get-Command $cmd -ErrorAction SilentlyContinue) }
+function RunText($file, [string[]]$args) {
+  $out = & $file @args 2>&1
+  if ($LASTEXITCODE -ne 0) { throw ($out -join "\`n") }
+  return ($out -join "\`n")
 }
 
-& $bash.Source (Join-Path $PSScriptRoot "qianchuan_preflight.sh") @args
-exit $LASTEXITCODE
+Write-Host "煮酒社群投流龙虾 Windows 预检" -ForegroundColor Cyan
+Ok "workspace: $Workspace"
+if (-not (Test-Path $Workspace)) { Fail "工作区不存在：$Workspace" }
+
+if (-not (Have "node")) { Fail "未找到 node。请先安装/修复 OpenClaw。" }
+Ok "node: $((& node --version).Trim())"
+
+if (-not (Have "openclaw")) { Fail "未找到 openclaw 命令。请重新打开 PowerShell，或重新安装 OpenClaw。" }
+Ok "openclaw 命令可用"
+
+try {
+  RunText "openclaw" @("config", "validate") | Out-Null
+  Ok "OpenClaw config validate 通过"
+} catch {
+  Fail "OpenClaw 配置校验失败：$($_.Exception.Message)"
+}
+
+foreach ($file in @("AGENTS.md", "QIANCHUAN_LIVE_HEATING_SOP.md", "customer-config.yaml", "qc_plan_registry.js", "qc_monitor_state_validate.js", "cdp_qc_create_today10.js", "cdp_qc_batch_loop.js", "memory\qianchuan-plan-registry.json", "memory\qianchuan-monitor-state.json", "memory\qianchuan-monitor-plan-list.md")) {
+  $p = Join-Path $Workspace $file
+  if (-not (Test-Path $p)) { Fail "缺少必要文件：$file" }
+}
+Ok "工作区文件完整"
+
+try {
+  Push-Location $Workspace
+  & node --check qc_cli_args.js | Out-Null
+  & node --check qc_plan_registry.js | Out-Null
+  & node --check qc_monitor_state_validate.js | Out-Null
+  & node --check cdp_qc_create_today10.js | Out-Null
+  & node --check cdp_qc_batch_loop.js | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "node --check failed" }
+  Ok "Node 脚本语法校验通过"
+} catch {
+  Fail "Node 脚本校验失败：$($_.Exception.Message)"
+} finally {
+  Pop-Location
+}
+
+try {
+  Push-Location $Workspace
+  $js = @'
+const fs=require('fs');
+const r=JSON.parse(fs.readFileSync('memory/qianchuan-plan-registry.json','utf8'));
+if(!Array.isArray(r.entries)) throw new Error('registry.entries 不是数组');
+const names=new Set(), combos=new Set();
+for(const e of r.entries){
+  if(!e.planName||!e.behavior||!e.interest) throw new Error('台账存在不完整记录');
+  const name=String(e.planName).replace(/\s+/g,'');
+  const combo=e.comboKey||\`\${e.behavior}::\${e.interest}\`;
+  if(names.has(name)) throw new Error('重复计划名：'+e.planName);
+  if(combos.has(combo)) throw new Error('重复行为兴趣组合：'+combo);
+  names.add(name); combos.add(combo);
+}
+console.log(\`OK registry \${r.entries.length}\`);
+'@
+  $tmp = Join-Path $env:TEMP "longxia-registry-check.js"
+  Set-Content -Path $tmp -Value $js -Encoding UTF8
+  $out = & node $tmp 2>&1
+  if ($LASTEXITCODE -ne 0) { throw ($out -join "\`n") }
+  Ok "计划台账可读取且无重复"
+} catch {
+  Fail "计划台账校验失败：$($_.Exception.Message)"
+} finally {
+  Pop-Location
+}
+
+try {
+  Push-Location $Workspace
+  & node qc_monitor_state_validate.js --mode preflight
+  if ($LASTEXITCODE -ne 0) { throw "监控状态校验失败" }
+  Ok "监控状态预检通过"
+} catch {
+  Fail "监控状态预检失败：$($_.Exception.Message)"
+} finally {
+  Pop-Location
+}
+
+try {
+  & openclaw browser start --json | Out-Null
+  Start-Sleep -Seconds 2
+  $version = Invoke-RestMethod -Uri "$CdpUrl/json/version" -TimeoutSec 3
+  Ok "浏览器 CDP 可访问：$($version.Browser)"
+} catch {
+  Warn "浏览器 CDP 暂不可访问：$($_.Exception.Message)"
+  Warn "如果后续需要页面自动化，请先打开 OpenClaw Browser 或 Chrome/Edge。"
+}
+
+try {
+  $healthRaw = RunText "openclaw" @("health", "--json")
+  if ($healthRaw -match '"ok"\s*:\s*true') { Ok "OpenClaw health 正常" }
+  else { Warn "OpenClaw health 未明确 ok=true；如飞书不回消息，请重启 gateway。" }
+} catch {
+  Warn "OpenClaw health 查询失败：$($_.Exception.Message)"
+}
+
+Ok "preflight passed：可开始千川页面级操作；遇到登录/验证码/授权/风控/扣费等仍必须人工处理。"
+exit 0
 `;
 
 function parseArgs(argv) {
@@ -46,6 +148,7 @@ function parseArgs(argv) {
     feishuMock: false,
     overwrite: false,
     dryRun: false,
+    updateWorkspaceConfig: true,
     workspaceName: DEFAULT_WORKSPACE_NAME,
   };
 
@@ -66,6 +169,8 @@ function parseArgs(argv) {
     else if (arg === "--workspace") args.workspace = requireValue(argv, ++i, arg);
     else if (arg === "--workspace-name") args.workspaceName = requireValue(argv, ++i, arg);
     else if (arg === "--openclaw-home") args.openclawHome = requireValue(argv, ++i, arg);
+    else if (arg === "--config-path") args.configPath = requireValue(argv, ++i, arg);
+    else if (arg === "--no-workspace-config" || arg === "--no-config-set") args.updateWorkspaceConfig = false;
     else throw new Error(`Unknown argument: ${arg}`);
   }
 
@@ -87,8 +192,10 @@ function usage() {
 
 Options:
   --workspace <path>       Customer workspace path.
-  --workspace-name <name>  Workspace folder under ~/.openclaw. Default: ${DEFAULT_WORKSPACE_NAME}
-  --openclaw-home <path>   OpenClaw home and config scope. Default: %USERPROFILE%\\.openclaw or ~/.openclaw
+  --workspace-name <name>  Fallback workspace folder under ~/.openclaw. Default: ${DEFAULT_WORKSPACE_NAME}
+  --openclaw-home <path>   OpenClaw home scope. Default: active OpenClaw config home, then %USERPROFILE%\\.openclaw or ~/.openclaw
+  --config-path <path>     OpenClaw config file. Default: active config from 'openclaw config file'
+  --no-workspace-config    Do not patch agents.defaults.workspace when --workspace points elsewhere.
   --setup-feishu           One-click create/bind Feishu bot. Requires customer scan/authorization.
   --feishu-account <id>    OpenClaw Feishu account id. Default: longxia
   --feishu-app-name <name> Feishu app and bot name. Default: 煮酒社群投流龙虾
@@ -113,13 +220,118 @@ function resolvePaths(args) {
     throw new Error("Cannot find USERPROFILE/HOME. Pass --openclaw-home <path>.");
   }
 
-  const openclawHome = path.resolve(args.openclawHome || path.join(home, ".openclaw"));
-  const configPath = path.join(openclawHome, "openclaw.json");
-  const defaultWorkspace = path.join(openclawHome, "workspace");
-  const skillsDir = path.join(defaultWorkspace, "skills");
-  const clientWorkspace = path.resolve(args.workspace || path.join(openclawHome, args.workspaceName));
+  const activeConfigPath = path.resolve(
+    expandHome(
+      args.configPath ||
+        process.env.OPENCLAW_CONFIG_PATH ||
+        getOpenClawConfigFile({ openclawHome: args.openclawHome }) ||
+        path.join(args.openclawHome || path.join(home, ".openclaw"), "openclaw.json"),
+    ),
+  );
+  const openclawHome = path.resolve(args.openclawHome || process.env.OPENCLAW_HOME || process.env.OPENCLAW_STATE_DIR || path.dirname(activeConfigPath));
+  const activeWorkspace = normalizeMaybePath(
+    getOpenClawConfigJsonValue("agents.defaults.workspace", {
+      openclawHome,
+      configPath: activeConfigPath,
+    }),
+  );
+  const installedWorkspace = inferInstalledWorkspace();
+  const fallbackWorkspace = path.join(openclawHome, args.workspaceName);
+  const clientWorkspace = path.resolve(args.workspace || activeWorkspace || installedWorkspace || fallbackWorkspace);
+  const defaultWorkspace = activeWorkspace || clientWorkspace;
+  const skillsDir = path.join(clientWorkspace, "skills");
+  const shouldPatchWorkspace =
+    args.updateWorkspaceConfig &&
+    Boolean(args.workspace) &&
+    !samePath(clientWorkspace, activeWorkspace);
 
-  return { openclawHome, configPath, defaultWorkspace, skillsDir, clientWorkspace };
+  return {
+    openclawHome,
+    configPath: activeConfigPath,
+    defaultWorkspace,
+    activeWorkspace,
+    installedWorkspace,
+    skillsDir,
+    clientWorkspace,
+    shouldPatchWorkspace,
+    updateWorkspaceConfig: args.updateWorkspaceConfig,
+  };
+}
+
+function inferInstalledWorkspace() {
+  const maybeSkillsDir = path.dirname(ROOT);
+  if (path.basename(maybeSkillsDir).toLowerCase() === "skills") {
+    return path.dirname(maybeSkillsDir);
+  }
+  return "";
+}
+
+function samePath(a, b) {
+  if (!a || !b) return false;
+  return path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase();
+}
+
+function normalizeMaybePath(value) {
+  if (!value || typeof value !== "string") return "";
+  return path.resolve(expandHome(value));
+}
+
+function expandHome(value) {
+  if (!value || typeof value !== "string") return value;
+  return value.replace(/^~(?=$|[\\/])/, process.env.HOME || process.env.USERPROFILE || "~");
+}
+
+function stripAnsi(text) {
+  return String(text || "").replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, "");
+}
+
+function lastSignalLine(output) {
+  const lines = stripAnsi(output)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !line.startsWith("Config warnings:"))
+    .filter((line) => !line.startsWith("- plugins."))
+    .filter((line) => !line.startsWith("🦞"));
+  return lines[lines.length - 1] || "";
+}
+
+function openClawEnv(options = {}) {
+  const env = { ...process.env };
+  if (options.openclawHome) {
+    env.OPENCLAW_HOME = options.openclawHome;
+    env.OPENCLAW_STATE_DIR = options.openclawHome;
+  }
+  if (options.configPath) env.OPENCLAW_CONFIG_PATH = options.configPath;
+  return env;
+}
+
+function runOpenClawCapture(args, options = {}) {
+  const result = spawnSync("openclaw", args, {
+    encoding: "utf8",
+    shell: process.platform === "win32",
+    env: openClawEnv(options),
+  });
+  if (result.status !== 0) return "";
+  return `${result.stdout || ""}\n${result.stderr || ""}`;
+}
+
+function getOpenClawConfigFile(options = {}) {
+  const output = runOpenClawCapture(["config", "file"], options);
+  const line = lastSignalLine(output);
+  if (!line || line.includes("Usage:")) return "";
+  return line;
+}
+
+function getOpenClawConfigJsonValue(key, options = {}) {
+  const output = runOpenClawCapture(["config", "get", key, "--json"], options);
+  const line = lastSignalLine(output);
+  if (!line) return "";
+  try {
+    return JSON.parse(line);
+  } catch {
+    return line;
+  }
 }
 
 function mkdirp(dir, dryRun) {
@@ -163,16 +375,31 @@ function runOpenClaw(args, options = {}) {
   }
 
   console.log(`\n$ ${command}`);
-  const env = {
-    ...process.env,
-    OPENCLAW_HOME: options.openclawHome,
-    OPENCLAW_STATE_DIR: options.openclawHome,
-    OPENCLAW_CONFIG_PATH: options.configPath,
-  };
   const result = spawnSync("openclaw", args, {
     stdio: "inherit",
     shell: process.platform === "win32",
-    env,
+    env: openClawEnv(options),
+  });
+  if (result.status !== 0) {
+    throw new Error(`Command failed: ${command}`);
+  }
+}
+
+function runOpenClawPatch(patch, options = {}) {
+  const command = "openclaw config patch --stdin";
+  if (options.dryRun) {
+    console.log(`[dry-run] ${command}`);
+    console.log(JSON.stringify(patch, null, 2));
+    return;
+  }
+
+  console.log(`\n$ ${command}`);
+  const result = spawnSync("openclaw", ["config", "patch", "--stdin"], {
+    input: `${JSON.stringify(patch, null, 2)}\n`,
+    encoding: "utf8",
+    stdio: ["pipe", "inherit", "inherit"],
+    shell: process.platform === "win32",
+    env: openClawEnv(options),
   });
   if (result.status !== 0) {
     throw new Error(`Command failed: ${command}`);
@@ -190,12 +417,7 @@ function runNode(args, options = {}) {
   const result = spawnSync("node", args, {
     stdio: "inherit",
     shell: process.platform === "win32",
-    env: {
-      ...process.env,
-      OPENCLAW_HOME: options.openclawHome,
-      OPENCLAW_STATE_DIR: options.openclawHome,
-      OPENCLAW_CONFIG_PATH: options.configPath,
-    },
+    env: openClawEnv(options),
   });
   if (result.status !== 0) {
     throw new Error(`Command failed: ${command}`);
@@ -235,6 +457,36 @@ function ensureWindowsPreflightWrappers(clientWorkspace, options) {
   ensureTextFile(path.join(clientWorkspace, "bin", "qianchuan_preflight.ps1"), WINDOWS_PREFLIGHT_PS1, options);
 }
 
+function ensureWorkspaceConfig(paths, options) {
+  if (samePath(paths.clientWorkspace, paths.activeWorkspace)) {
+    console.log("OpenClaw 默认工作区已经是目标工作区，跳过默认工作区修改。");
+    return;
+  }
+
+  if (!paths.updateWorkspaceConfig) {
+    console.log("已按 --no-workspace-config 跳过默认工作区修改。");
+    console.log(`提示：OpenClaw 当前默认工作区仍是 ${paths.activeWorkspace || "未识别"}。`);
+    return;
+  }
+
+  if (!paths.shouldPatchWorkspace) {
+    console.log("未指定独立 --workspace，跳过默认工作区修改。");
+    return;
+  }
+
+  runOpenClawPatch(
+    {
+      agents: {
+        defaults: {
+          workspace: paths.clientWorkspace,
+        },
+      },
+    },
+    options,
+  );
+  runOpenClaw(["config", "get", "agents.defaults.workspace"], options);
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
@@ -266,6 +518,7 @@ function main() {
   console.log("煮酒社群投流龙虾 - 客户一键安装");
   console.log(`OpenClaw home: ${paths.openclawHome}`);
   console.log(`OpenClaw config: ${paths.configPath}`);
+  console.log(`Active workspace: ${paths.activeWorkspace || "未识别，将使用目标工作区"}`);
   console.log(`Skills dir: ${paths.skillsDir}`);
   console.log(`Client workspace: ${paths.clientWorkspace}`);
 
@@ -288,8 +541,7 @@ function main() {
     console.log(`Skipped existing files: ${options.skipped.length} (use --overwrite to replace templates)`);
   }
 
-  runOpenClaw(["config", "set", "agents.defaults.workspace", paths.clientWorkspace], options);
-  runOpenClaw(["config", "get", "agents.defaults.workspace"], options);
+  ensureWorkspaceConfig(paths, options);
   runOpenClaw(["config", "validate"], options);
 
   if (args.setupFeishu) {
@@ -298,6 +550,8 @@ function main() {
       feishuScript,
       "--openclaw-home",
       paths.openclawHome,
+      "--config-path",
+      paths.configPath,
       "--workspace",
       paths.clientWorkspace,
       "--account",

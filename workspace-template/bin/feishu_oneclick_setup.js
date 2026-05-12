@@ -112,14 +112,68 @@ function openUrl(url, enabled) {
 
 function resolveOpenClawPaths(args) {
   const home = process.env.USERPROFILE || process.env.HOME || os.homedir();
+  const activeConfigPath =
+    args.configPath ||
+    process.env.OPENCLAW_CONFIG_PATH ||
+    getOpenClawConfigFile({
+      openclawHome: args.openclawHome,
+    });
+  const expandedActiveConfigPath = expandHome(activeConfigPath);
   const openclawHome = path.resolve(
     args.openclawHome ||
       process.env.OPENCLAW_STATE_DIR ||
       process.env.OPENCLAW_HOME ||
-      path.join(home, ".openclaw"),
+      (expandedActiveConfigPath ? path.dirname(expandedActiveConfigPath) : path.join(home, ".openclaw")),
   );
-  const configPath = path.resolve(args.configPath || process.env.OPENCLAW_CONFIG_PATH || path.join(openclawHome, "openclaw.json"));
+  const configPath = path.resolve(expandedActiveConfigPath || path.join(openclawHome, "openclaw.json"));
   return { openclawHome, configPath };
+}
+
+function expandHome(value) {
+  if (!value || typeof value !== "string") return value;
+  return value.replace(/^~(?=$|[\\/])/, process.env.HOME || process.env.USERPROFILE || "~");
+}
+
+function openClawEnv(paths) {
+  const env = { ...process.env };
+  if (paths.openclawHome) {
+    env.OPENCLAW_HOME = paths.openclawHome;
+    env.OPENCLAW_STATE_DIR = paths.openclawHome;
+  }
+  if (paths.configPath) env.OPENCLAW_CONFIG_PATH = paths.configPath;
+  return env;
+}
+
+function stripAnsi(text) {
+  return String(text || "").replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, "");
+}
+
+function lastSignalLine(output) {
+  const lines = stripAnsi(output)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !line.startsWith("Config warnings:"))
+    .filter((line) => !line.startsWith("- plugins."))
+    .filter((line) => !line.startsWith("🦞"));
+  return lines[lines.length - 1] || "";
+}
+
+function getOpenClawConfigFile(options = {}) {
+  const env = { ...process.env };
+  if (options.openclawHome) {
+    env.OPENCLAW_HOME = options.openclawHome;
+    env.OPENCLAW_STATE_DIR = options.openclawHome;
+  }
+  const result = spawnSync("openclaw", ["config", "file"], {
+    encoding: "utf8",
+    shell: process.platform === "win32",
+    env,
+  });
+  if (result.status !== 0) return "";
+  const line = lastSignalLine(`${result.stdout || ""}\n${result.stderr || ""}`);
+  if (!line || line.includes("Usage:")) return "";
+  return line;
 }
 
 function resolveSdk(workspace) {
@@ -277,27 +331,34 @@ function readConfig(configPath) {
   if (!fs.existsSync(configPath)) return {};
   const raw = fs.readFileSync(configPath, "utf8").trim();
   if (!raw) return {};
-  return JSON.parse(raw);
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    console.log(`提示：无法直接解析 ${configPath}，将使用 OpenClaw config patch 做最小合并：${error.message}`);
+    return {};
+  }
 }
 
 function patchOpenClawConfig(args, paths, creds) {
   if (!args.patchConfig) return false;
 
   const config = readConfig(paths.configPath);
-  config.channels = config.channels || {};
-  const feishu = { ...(config.channels.feishu || {}) };
-  feishu.enabled = true;
-  feishu.domain = args.domain;
-  feishu.connectionMode = "websocket";
-  feishu.defaultAccount = args.account;
-  feishu.dmPolicy = args.dmPolicy;
-  feishu.groupPolicy = args.groupPolicy;
+  const existingFeishu = config.channels?.feishu || {};
+  const existingAccount = existingFeishu.accounts?.[args.account] || {};
+  const feishuPatch = {
+    enabled: true,
+    domain: args.domain,
+    connectionMode: "websocket",
+    defaultAccount: args.account,
+    dmPolicy: args.dmPolicy,
+    groupPolicy: args.groupPolicy,
+    accounts: {},
+  };
   if (args.dmPolicy === "allowlist" && creds.ownerOpenId) {
-    feishu.allowFrom = Array.from(new Set([...(feishu.allowFrom || []), creds.ownerOpenId]));
+    feishuPatch.allowFrom = Array.from(new Set([...(existingFeishu.allowFrom || []), creds.ownerOpenId]));
   }
-  feishu.accounts = { ...(feishu.accounts || {}) };
-  feishu.accounts[args.account] = {
-    ...(feishu.accounts[args.account] || {}),
+  feishuPatch.accounts[args.account] = {
+    ...existingAccount,
     appId: creds.appId,
     appSecret: creds.appSecret,
     name: args.appName,
@@ -307,22 +368,51 @@ function patchOpenClawConfig(args, paths, creds) {
     groupPolicy: args.groupPolicy,
     allowFrom:
       args.dmPolicy === "allowlist" && creds.ownerOpenId
-        ? Array.from(new Set([...(feishu.accounts[args.account]?.allowFrom || []), creds.ownerOpenId]))
-        : feishu.accounts[args.account]?.allowFrom,
+        ? Array.from(new Set([...(existingAccount.allowFrom || []), creds.ownerOpenId]))
+        : existingAccount.allowFrom,
     requireMention: args.groupPolicy === "open" ? false : true,
   };
-  config.channels.feishu = feishu;
+  const patch = { channels: { feishu: feishuPatch } };
 
   if (args.dryRun) {
-    console.log(`[dry-run] patch ${paths.configPath}: channels.feishu.accounts.${args.account}`);
+    console.log(`[dry-run] openclaw config patch ${paths.configPath}: channels.feishu.accounts.${args.account}`);
+    console.log(
+      JSON.stringify(
+        {
+          channels: {
+            feishu: {
+              enabled: true,
+              domain: args.domain,
+              defaultAccount: args.account,
+              dmPolicy: args.dmPolicy,
+              groupPolicy: args.groupPolicy,
+              accounts: {
+                [args.account]: {
+                  appId: "***REDACTED***",
+                  appSecret: "***REDACTED***",
+                  name: args.appName,
+                  enabled: true,
+                },
+              },
+            },
+          },
+        },
+        null,
+        2,
+      ),
+    );
     return true;
   }
 
-  mkdirp(path.dirname(paths.configPath), false);
-  if (fs.existsSync(paths.configPath)) {
-    fs.copyFileSync(paths.configPath, `${paths.configPath}.backup-${stamp()}`);
-  }
-  fs.writeFileSync(paths.configPath, `${JSON.stringify(config, null, 2)}\n`, { mode: 0o600 });
+  console.log(`\n$ openclaw config patch --stdin`);
+  const result = spawnSync("openclaw", ["config", "patch", "--stdin"], {
+    input: `${JSON.stringify(patch, null, 2)}\n`,
+    encoding: "utf8",
+    stdio: ["pipe", "inherit", "inherit"],
+    shell: process.platform === "win32",
+    env: openClawEnv(paths),
+  });
+  if (result.status !== 0) throw new Error("OpenClaw config patch failed after Feishu setup");
   return true;
 }
 
@@ -338,12 +428,7 @@ function runOpenClawValidate(paths, dryRun) {
   const result = spawnSync(command, args, {
     stdio: "inherit",
     shell: process.platform === "win32",
-    env: {
-      ...process.env,
-      OPENCLAW_HOME: paths.openclawHome,
-      OPENCLAW_STATE_DIR: paths.openclawHome,
-      OPENCLAW_CONFIG_PATH: paths.configPath,
-    },
+    env: openClawEnv(paths),
   });
   if (result.status !== 0) throw new Error("OpenClaw config validation failed after Feishu setup");
 }

@@ -2,7 +2,20 @@
 
 > 煮酒社群出品。未经授权，不得转售、转授权、改名包装销售，或对外宣称为第三方自研成果。
 
-## 客户一键安装
+## Windows 小白一键安装（推荐）
+
+客户已经安装 OpenClaw 后，不需要知道文件在哪里：
+
+1. 解压本包，不能在压缩包预览里直接双击。
+2. 双击 `RUN-ME-FIRST.bat`。
+3. 如果 OpenClaw 不在 C 盘，安装器会自动探测；探测不到时按提示粘贴 OpenClaw 数据目录。
+4. 按窗口提示扫码/授权飞书。
+5. 在飞书给机器人发 `测试`，能回复后发 `初始化千川直播加热`。
+6. 按向导填写千川账户信息，再人工登录千川。
+
+详细说明见：`WINDOWS-小白安装说明.md`。
+
+## 客户一键安装（命令行）
 
 如果客户已经安装过旧版，先更新：
 
@@ -20,11 +33,12 @@ node scripts/install-qianchuan-client.js --setup-feishu --install-gateway --open
 
 1. 复制 `skills/feishu-bot-provisioner` 到 OpenClaw skills 目录。
 2. 复制 `skills/qianchuan-live-heating-automation` 到 OpenClaw skills 目录。
-3. 复制 `workspace-template` 为客户工作区，默认：
-   `~/.openclaw/workspace-qianchuan-client`
+3. 复制 `workspace-template` 到 OpenClaw 当前正在使用的 workspace，常见如：
+   `E:\OpenClawWorkspace`
+   只有显式传 `--workspace` 时才使用指定目录。
 4. 生成 `customer-config.yaml`。
-5. 把 OpenClaw 默认工作区切到客户工作区。
-6. 打开飞书扫码授权，一键创建飞书智能体应用并写入客户本机配置。
+5. 如果显式指定了独立 `--workspace`，用 `openclaw config patch --stdin` 安全切换默认工作区；默认场景不改 OpenClaw 配置。
+6. 通过飞书开放平台 CLI/SDK 打开扫码授权，一键创建飞书机器人应用，读取 App ID / App Secret，并用 `openclaw config patch --stdin` 写入客户本机 OpenClaw 配置。
 7. 校验 OpenClaw 配置。
 8. 安装并启动 Gateway 服务。
 9. 打开 OpenClaw Dashboard。
@@ -32,7 +46,8 @@ node scripts/install-qianchuan-client.js --setup-feishu --install-gateway --open
 Windows 示例：
 
 ```bat
-cd /d C:\Users\Administrator\.openclaw\workspace\skills\juliang-qianchuan-auto-ads-v1
+REM 进入 openclaw skills install 输出的实际安装目录，例如：
+cd /d E:\OpenClawWorkspace\skills\juliang-qianchuan-auto-ads-v1
 node scripts\install-qianchuan-client.js --setup-feishu --install-gateway --open-dashboard
 ```
 
@@ -105,7 +120,7 @@ bin\qianchuan_preflight.cmd
 ## 注意
 
 - App Secret、Encrypt Key、千川账号隐私只放本地 `.env` 或 `customer-config.local.yaml`。
-- 飞书一键创建需要客户本人扫码/授权；脚本只在客户本机保存 App Secret，不上传、不写入公开仓库。
+- 飞书默认走开放平台 CLI/SDK 一键创建：客户本人扫码/授权后，脚本读取 App ID / App Secret 并只保存在客户本机，不上传、不写入公开仓库；手动开放平台仅作为失败兜底。
 - 已创建计划必须写入 `workspace-template/memory/qianchuan-plan-registry.json`；后续查重以该本地台账为主，不能只靠千川后台临时搜索。
 - 客户工作区已包含预检、MCP 只读探测、台账查重、监控状态校验和参数化 CDP 脚本；不要使用旧的硬编码恢复脚本。
 - 遇到登录、验证码、授权、风控、扣费确认必须人工处理。
@@ -121,3 +136,17 @@ bin\qianchuan_preflight.cmd
 详见 `NOTICE.md`。
 
 <!-- provenance: 煮酒社群投流龙虾 -->
+
+
+如果双击 `RUN-ME-FIRST.bat` 仍然闪退，请双击 `RUN-ME-FIRST.vbs`；它会用 Windows Script Host 打开一个 `cmd /k` 窗口。
+
+
+## 如果双击仍闪退
+
+不要继续双击。请打开 `如果双击闪退-请看这个.txt`，按里面说明在解压目录打开 PowerShell，粘贴：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -NoExit -File .\INSTALLER-MAIN.ps1
+```
+
+如果 `RUN-ME-FIRST.bat` 第一行 pause 都闪退，说明 Windows 没有正常执行 bat/vbs 入口，不是安装逻辑问题。

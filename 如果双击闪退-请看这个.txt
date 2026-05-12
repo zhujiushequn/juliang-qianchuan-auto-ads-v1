@@ -1,0 +1,27 @@
+如果双击 RUN-ME-FIRST.bat / RUN-ME-FIRST.vbs 仍然闪退，说明当前 Windows 没有正常执行脚本入口。
+请不要再双击，改用下面方法：
+
+方法一：在解压目录打开 PowerShell
+
+1. 必须先完整解压 zip。
+2. 打开解压后的文件夹，也就是能看到 install-windows.ps1 的那个文件夹。
+3. 在文件夹空白处按住 Shift，点击鼠标右键。
+4. 选择“在终端中打开”或“在 PowerShell 中打开”。
+5. 粘贴下面这一行，回车：
+
+powershell -NoProfile -ExecutionPolicy Bypass -NoExit -File .\INSTALLER-MAIN.ps1
+
+方法二：如果右键没有 PowerShell
+
+1. 按 Win 键，搜索 PowerShell。
+2. 打开 Windows PowerShell。
+3. 输入 cd 空格，然后把解压后的文件夹拖进 PowerShell 窗口，回车。
+   示例：
+   cd "D:\Downloads\juliang-qianchuan-auto-ads-windows-v1"
+4. 再粘贴下面这一行，回车：
+
+powershell -NoProfile -ExecutionPolicy Bypass -NoExit -File .\INSTALLER-MAIN.ps1
+
+如果还是失败，请把 PowerShell 窗口里的红字截图，或者把 install-windows.log 发给协助人员。
+
+注意：不要在压缩包预览窗口里运行；必须先解压。

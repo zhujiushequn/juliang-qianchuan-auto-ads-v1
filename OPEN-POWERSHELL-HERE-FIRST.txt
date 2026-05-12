@@ -1,0 +1,12 @@
+COPY THIS COMMAND IN POWERSHELL:
+
+powershell -NoProfile -ExecutionPolicy Bypass -NoExit -File .\INSTALLER-MAIN.ps1
+
+Steps:
+1. Extract the zip first.
+2. Open the extracted folder.
+3. Shift + Right Click in blank area.
+4. Choose Open in Terminal / Open PowerShell here.
+5. Paste the command above and press Enter.
+
+If OpenClaw is not on C drive, the installer will detect it or ask you to paste the OpenClaw data folder.

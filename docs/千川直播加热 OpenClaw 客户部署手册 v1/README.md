@@ -205,7 +205,8 @@ openclaw skills install juliang-qianchuan-auto-ads-v1 --force
 进入技能包目录：
 
 ```bat
-cd /d C:\Users\Administrator\.openclaw\workspace\skills\juliang-qianchuan-auto-ads-v1
+REM 进入 openclaw skills install 输出的实际安装目录，例如：
+cd /d E:\OpenClawWorkspace\skills\juliang-qianchuan-auto-ads-v1
 ```
 
 运行安装器：
@@ -214,7 +215,7 @@ cd /d C:\Users\Administrator\.openclaw\workspace\skills\juliang-qianchuan-auto-a
 node scripts\install-qianchuan-client.js --setup-feishu --install-gateway --open-dashboard
 ```
 
-安装器会自动复制两个子技能、生成客户工作区、创建 `customer-config.yaml`、切换 OpenClaw 默认工作区、打开飞书扫码授权创建机器人、写入客户本机飞书配置、校验配置、安装并启动 Gateway。
+安装器会自动复制两个子技能、写入 OpenClaw 当前客户工作区、创建 `customer-config.yaml`、打开飞书扫码授权创建机器人、用 `openclaw config patch --stdin` 写入客户本机飞书配置、校验配置、安装并启动 Gateway。只有显式传 `--workspace` 到独立目录时，才会安全切换 OpenClaw 默认工作区。
 
 飞书一键创建过程会打开授权链接，客户必须本人扫码/确认。完成后 App Secret 只写入客户本机：
 
