@@ -1,6 +1,6 @@
 {
   "name": "juliang-qianchuan-auto-ads-v1",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "巨量千川品牌竞价直播加热客户部署与自动投流工作流：一键安装、飞书机器人对接、预检、发布前确认、页面字段校验、计划防重复、目标广告组内监控与异常处理建议。",
   "main": "SKILL.md",
   "keywords": [

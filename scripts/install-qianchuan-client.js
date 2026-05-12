@@ -7,6 +7,31 @@ const { spawnSync } = require("node:child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 const DEFAULT_WORKSPACE_NAME = "workspace-qianchuan-client";
+const WINDOWS_PREFLIGHT_CMD = `@echo off
+setlocal
+
+where bash >nul 2>nul
+if errorlevel 1 (
+  echo FAIL: 未找到 bash。请先安装 Git for Windows 或 WSL，然后重新运行 bin\\qianchuan_preflight.cmd。
+  echo NOTICE: 也可以在 OpenClaw Dashboard 或飞书里发送“检查千川环境”，让机器人按页面执行只读预检。
+  exit /b 1
+)
+
+bash "%~dp0qianchuan_preflight.sh" %*
+exit /b %ERRORLEVEL%
+`;
+const WINDOWS_PREFLIGHT_PS1 = `$ErrorActionPreference = "Stop"
+
+$bash = Get-Command bash -ErrorAction SilentlyContinue
+if (-not $bash) {
+  Write-Host "FAIL: 未找到 bash。请先安装 Git for Windows 或 WSL，然后重新运行 bin\\qianchuan_preflight.ps1。"
+  Write-Host "NOTICE: 也可以在 OpenClaw Dashboard 或飞书里发送“检查千川环境”，让机器人按页面执行只读预检。"
+  exit 1
+}
+
+& $bash.Source (Join-Path $PSScriptRoot "qianchuan_preflight.sh") @args
+exit $LASTEXITCODE
+`;
 
 function parseArgs(argv) {
   const args = {
@@ -150,6 +175,26 @@ function ensureConfigFile(clientWorkspace, options) {
   options.copied.push(target);
 }
 
+function ensureTextFile(file, content, options) {
+  if (fs.existsSync(file) && !options.overwrite) {
+    options.skipped.push(file);
+    return;
+  }
+
+  mkdirp(path.dirname(file), options.dryRun);
+  if (options.dryRun) {
+    console.log(`[dry-run] write ${file}`);
+  } else {
+    fs.writeFileSync(file, content, "utf8");
+  }
+  options.copied.push(file);
+}
+
+function ensureWindowsPreflightWrappers(clientWorkspace, options) {
+  ensureTextFile(path.join(clientWorkspace, "bin", "qianchuan_preflight.cmd"), WINDOWS_PREFLIGHT_CMD, options);
+  ensureTextFile(path.join(clientWorkspace, "bin", "qianchuan_preflight.ps1"), WINDOWS_PREFLIGHT_PS1, options);
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
@@ -196,6 +241,7 @@ function main() {
   );
   copyRecursive(path.join(ROOT, "workspace-template"), paths.clientWorkspace, options);
   ensureConfigFile(paths.clientWorkspace, options);
+  ensureWindowsPreflightWrappers(paths.clientWorkspace, options);
 
   console.log(`\nCopied files: ${options.copied.length}`);
   if (options.skipped.length > 0) {
