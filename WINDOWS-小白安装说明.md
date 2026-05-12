@@ -143,3 +143,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -NoExit -File .\INSTALLER-MAIN.ps1
 ```
 
 如果 `RUN-ME-FIRST.bat` 第一行 pause 都闪退，说明 Windows 没有正常执行 bat/vbs 入口，不是安装逻辑问题。
+
+IMPORTANT: If PowerShell prompt shows `PS C:\WINDOWS\system32>`, you are in the wrong folder. First run:
+
+```powershell
+cd "C:\Users\Administrator\Desktop\juliang-qianchuan-auto-ads-windows-v1\juliang-qianchuan-auto-ads-windows-v1"
+powershell -NoProfile -ExecutionPolicy Bypass -NoExit -File .\INSTALLER-MAIN.ps1
+```

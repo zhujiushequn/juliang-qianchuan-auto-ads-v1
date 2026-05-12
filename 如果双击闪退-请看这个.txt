@@ -25,3 +25,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -NoExit -File .\INSTALLER-MAIN.ps1
 如果还是失败，请把 PowerShell 窗口里的红字截图，或者把 install-windows.log 发给协助人员。
 
 注意：不要在压缩包预览窗口里运行；必须先解压。
+
+IMPORTANT: If PowerShell prompt shows `PS C:\WINDOWS\system32>`, you are in the wrong folder. First run:
+
+```powershell
+cd "C:\Users\Administrator\Desktop\juliang-qianchuan-auto-ads-windows-v1\juliang-qianchuan-auto-ads-windows-v1"
+powershell -NoProfile -ExecutionPolicy Bypass -NoExit -File .\INSTALLER-MAIN.ps1
+```

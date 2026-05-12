@@ -1,0 +1,9 @@
+If PowerShell shows PS C:\WINDOWS\system32>, you are in the wrong folder.
+Run these two commands. Adjust the path if your extracted folder is different:
+
+cd "C:\Users\Administrator\Desktop\juliang-qianchuan-auto-ads-windows-v1\juliang-qianchuan-auto-ads-windows-v1"
+powershell -NoProfile -ExecutionPolicy Bypass -NoExit -File .\INSTALLER-MAIN.ps1
+
+Or run as one line:
+
+powershell -NoProfile -ExecutionPolicy Bypass -NoExit -File "C:\Users\Administrator\Desktop\juliang-qianchuan-auto-ads-windows-v1\juliang-qianchuan-auto-ads-windows-v1\INSTALLER-MAIN.ps1"

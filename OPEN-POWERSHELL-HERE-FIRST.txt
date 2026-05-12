@@ -10,3 +10,10 @@ Steps:
 5. Paste the command above and press Enter.
 
 If OpenClaw is not on C drive, the installer will detect it or ask you to paste the OpenClaw data folder.
+
+IMPORTANT: If PowerShell prompt shows `PS C:\WINDOWS\system32>`, you are in the wrong folder. First run:
+
+```powershell
+cd "C:\Users\Administrator\Desktop\juliang-qianchuan-auto-ads-windows-v1\juliang-qianchuan-auto-ads-windows-v1"
+powershell -NoProfile -ExecutionPolicy Bypass -NoExit -File .\INSTALLER-MAIN.ps1
+```
