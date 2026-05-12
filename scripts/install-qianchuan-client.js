@@ -385,6 +385,16 @@ function runOpenClaw(args, options = {}) {
   }
 }
 
+function tryRunOpenClaw(args, options = {}) {
+  try {
+    runOpenClaw(args, options);
+    return true;
+  } catch (error) {
+    console.log(`提示：${error.message}`);
+    return false;
+  }
+}
+
 function runOpenClawPatch(patch, options = {}) {
   const command = "openclaw config patch --stdin";
   if (options.dryRun) {
@@ -568,11 +578,29 @@ function main() {
   }
 
   if (args.installGateway) {
-    runOpenClaw(["gateway", "install", "--force", "--runtime", "node", "--port", "18789"], options);
+    const installed = tryRunOpenClaw(["gateway", "install", "--force", "--runtime", "node", "--port", "18789"], options);
+    if (!installed) {
+      console.log(`
+Gateway 服务安装失败，通常是 Windows 没有管理员权限创建计划任务。
+这不影响飞书机器人和千川工作区安装结果。
+
+可选处理：
+1. 右键“以管理员身份运行”CMD/PowerShell 后执行：
+   openclaw gateway install --force --runtime node --port 18789
+   openclaw gateway start
+2. 或不安装后台服务，前台运行：
+   openclaw gateway run --force --verbose
+   然后另开一个 CMD 执行：
+   openclaw dashboard
+`);
+    }
   }
   if (args.startGateway) {
-    runOpenClaw(["gateway", "start"], options);
-    runOpenClaw(["gateway", "status"], options);
+    if (tryRunOpenClaw(["gateway", "start"], options)) {
+      tryRunOpenClaw(["gateway", "status"], options);
+    } else {
+      console.log("Gateway 未能作为后台服务启动。可用 `openclaw gateway run --force --verbose` 前台运行。");
+    }
   }
   if (args.openDashboard) {
     runOpenClaw(["dashboard"], options);
