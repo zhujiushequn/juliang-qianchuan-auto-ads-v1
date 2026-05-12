@@ -192,11 +192,44 @@ workspace-qianchuan-客户名/
 
 ## 六、客户首次部署流程
 
-### Step 1：安装 OpenClaw
+### Step 1：安装或更新技能包
 
-客户电脑安装并启动 OpenClaw Gateway。
+客户电脑安装 OpenClaw 后，先安装或更新技能包：
 
-### Step 2：登录千川
+```bash
+openclaw skills install juliang-qianchuan-auto-ads-v1 --force
+```
+
+### Step 2：一键创建客户工作区
+
+进入技能包目录：
+
+```bat
+cd /d C:\Users\Administrator\.openclaw\workspace\skills\juliang-qianchuan-auto-ads-v1
+```
+
+运行安装器：
+
+```bat
+node scripts\install-qianchuan-client.js --install-gateway --open-dashboard
+```
+
+安装器会自动复制两个子技能、生成客户工作区、创建 `customer-config.yaml`、切换 OpenClaw 默认工作区、校验配置、安装并启动 Gateway。
+
+如果 Gateway 服务安装失败，可先前台运行：
+
+```bat
+node scripts\install-qianchuan-client.js
+openclaw gateway run --force --verbose
+```
+
+再新开一个 CMD 执行：
+
+```bat
+openclaw dashboard
+```
+
+### Step 3：登录千川
 
 在 Chrome / Edge 中登录客户自己的巨量千川账号。
 
@@ -206,13 +239,15 @@ workspace-qianchuan-客户名/
 品牌投放 > 品牌竞价 > 直播加热
 ```
 
-### Step 3：复制工作区模板
+### Step 4：初始化客户配置
 
-把通用模板复制成客户专属工作区。
+在 OpenClaw Dashboard 新建对话，输入：
 
-### Step 4：填写 `customer-config.yaml`
+```text
+初始化千川直播加热
+```
 
-填入客户账号、抖音号、预算、出价、词池等。
+按向导填入客户账号、抖音号、预算、出价、词池等。App Secret、Encrypt Key 等敏感信息只写入客户本地 `.env` 或 `customer-config.local.yaml`。
 
 ### Step 5：绑定飞书机器人
 

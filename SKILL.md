@@ -1,11 +1,11 @@
 ---
 name: 巨量千川自动投流v1版本
-description: 巨量千川品牌竞价直播加热配置与监控工作流。用于在客户授权并人工完成登录、验证码、扣费或协议确认后，指导 OpenClaw 按页面中文文案创建/校验直播加热计划；默认包含预检、发布前确认、持久化查重、目标广告组内监控和异常处理建议，不保存 Cookie、密钥或客户登录态，不绕过平台风控。
-version: 1.0.3
+description: 巨量千川品牌竞价直播加热客户部署与自动投流工作流。包含一键安装器、飞书机器人对接向导、客户工作区模板、预检、发布前确认、持久化查重、目标广告组内监控与异常处理建议；不保存 Cookie、密钥或客户登录态，不绕过平台风控。
+version: 1.1.0
 license: Complete terms in NOTICE.md
 metadata:
   author: 煮酒社群
-  version: "1.0.3"
+  version: "1.1.0"
   tags: [qianchuan, oceanengine, live-heating, auto-ads, feishu, openclaw]
 ---
 
@@ -34,12 +34,18 @@ metadata:
 
 ## 部署入口
 
-复制本技能包中的两个部分：
+优先使用一键安装器：
+
+```bash
+node scripts/install-qianchuan-client.js --install-gateway --open-dashboard
+```
+
+安装器会复制本技能包中的两个子技能：
 
 1. `skills/feishu-bot-provisioner`
 2. `skills/qianchuan-live-heating-automation`
 
-再复制 `workspace-template` 为客户独立工作区，填写客户自己的本地配置。
+并复制 `workspace-template` 为客户独立工作区，填写客户自己的本地配置。
 
 详细步骤见：
 
